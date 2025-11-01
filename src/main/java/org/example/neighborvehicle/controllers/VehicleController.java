@@ -3,6 +3,7 @@ package org.example.neighborvehicle.controllers;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.neighborvehicle.models.Listing;
+import org.example.neighborvehicle.models.Result;
 import org.example.neighborvehicle.models.VehicleRequest;
 import org.example.neighborvehicle.models.VehicleResponse;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,11 +26,9 @@ public class VehicleController {
 
         ObjectMapper mapper = new ObjectMapper();
         InputStream is = getClass().getResourceAsStream("/listings.json");
-
         List<Listing> listings = mapper.readValue(is, new TypeReference<List<Listing>>() {});
 
         listings.sort(Comparator.comparing(Listing::getLocationId).thenComparingInt(Listing::getPrice));
-
         List<VehicleResponse> results = new ArrayList<>();
 
         //System.out.println("Loaded " + listings.size() + " listings");
@@ -49,41 +48,13 @@ public class VehicleController {
                 remaining.put(req.getLength(), req.getQuantity());
             }
 
-            int totalPrice = 0;
-            List<String> usedListings = new ArrayList<>();
+            Result bestResult = new Result();
+            bestPriceCombination(sameLocationListings, 0, remaining, new ArrayList<>(), 0, bestResult);
 
-            for (Listing listing : sameLocationListings) {
-                boolean used = false;
-
-                for(var req : remaining.entrySet()) {
-                    int carLength = req.getKey();
-                    int needed = req.getValue();
-
-                    if(needed > 0 && listing.getLength() >= carLength && listing.getWidth() >= 10) {
-                        int fitLength = listing.getLength() / carLength;
-                        int fitWidth = listing.getWidth() / 10;
-                        int canFit = fitLength * fitWidth;
-
-                        int placed = Math.min(needed, canFit);
-                        remaining.put(carLength, needed-placed);
-
-                        if(placed > 0) {
-                            used = true;
-                        }
-                    }
-                }
-
-                if(used) {
-                    totalPrice += listing.getPrice();
-                    usedListings.add(listing.getId());
-                }
+            if(!bestResult.listingIds.isEmpty()) {
+                results.add(new VehicleResponse(currentLocation, bestResult.listingIds, bestResult.totalPrice));
             }
 
-            boolean allFit = remaining.values().stream().allMatch(v -> v == 0);
-
-            if(allFit) {
-                results.add(new VehicleResponse(currentLocation, usedListings, totalPrice));
-            }
 
         }
 
@@ -104,5 +75,50 @@ public class VehicleController {
 
 
 
+    }
+
+
+    void bestPriceCombination(List<Listing> listings, int index, Map<Integer, Integer> remaining, List<String> currentIds, int currentTotal, Result bestResult) {
+        if(remaining.values().stream().allMatch(v -> v == 0)) {
+            if(currentTotal < bestResult.totalPrice) {
+                bestResult.totalPrice = currentTotal;
+                bestResult.listingIds = new ArrayList<>(currentIds);
+
+            }
+
+            return;
+        }
+
+        if (index >= listings.size()) {
+            return;
+        }
+
+        Listing listing = listings.get(index);
+
+        Map<Integer, Integer> newRemaining = new HashMap<>(remaining);
+        boolean used = false;
+
+        for (var req : newRemaining.entrySet()) {
+            int carLength = req.getKey();
+            int needed = req.getValue();
+
+            if(needed > 0 && listing.getLength() >= carLength && listing.getWidth() >= 10) {
+                int fitLength = listing.getLength() / carLength;
+                int fitWidth = listing.getWidth() / 10;
+                int canFit = fitLength * fitWidth;
+
+                int placed = Math.min(needed, canFit);
+                newRemaining.put(carLength, needed-placed);
+                if (placed > 0) used = true;
+            }
+        }
+
+        if (used) {
+            currentIds.add(listing.getId());
+            bestPriceCombination(listings, index+ 1, newRemaining, currentIds, currentTotal + listing.getPrice(), bestResult);
+            currentIds.remove(currentIds.size() -1);
+        }
+
+        bestPriceCombination(listings, index + 1, remaining, currentIds, currentTotal, bestResult);
     }
 }
