@@ -19,9 +19,9 @@ public class VehicleController {
 
     @PostMapping("/")
     public String handlePost(@RequestBody List<VehicleRequest> requests) throws IOException {
-        for(VehicleRequest req : requests) {
-            System.out.println("Length: " + req.getLength() + " Quantity: " + req.getQuantity());
-        }
+//        for(VehicleRequest req : requests) {
+//            System.out.println("Length: " + req.getLength() + " Quantity: " + req.getQuantity());
+//        }
 
         ObjectMapper mapper = new ObjectMapper();
         InputStream is = getClass().getResourceAsStream("/listings.json");
@@ -32,7 +32,7 @@ public class VehicleController {
 
         List<VehicleResponse> results = new ArrayList<>();
 
-        System.out.println("Loaded " + listings.size() + " listings");
+        //System.out.println("Loaded " + listings.size() + " listings");
 
         int i =0;
         while(i < listings.size()) {
@@ -89,15 +89,15 @@ public class VehicleController {
 
         results.sort(Comparator.comparingInt((VehicleResponse::getTotal_price_in_cents)));
 
-        for (VehicleResponse response : results) {
-            System.out.println(
-                    "Location: " + response.getLocation_id() +
-                            " | Listings: " + response.getListing_ids() +
-                            " | Total Price (¢): " + response.getTotal_price_in_cents()
-            );
-        }
+//        for (VehicleResponse response : results) {
+//            System.out.println(
+//                    "Location: " + response.getLocation_id() +
+//                            " | Listings: " + response.getListing_ids() +
+//                            " | Total Price (¢): " + response.getTotal_price_in_cents()
+//            );
+//        }
 
-        System.out.println("Got " + results.size() + " results");
+        //System.out.println("Got " + results.size() + " results");
 
         //return "Recieved " + requests.size() + " vehicle requests";
         return mapper.writeValueAsString(results);
