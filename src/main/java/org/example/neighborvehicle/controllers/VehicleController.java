@@ -99,7 +99,9 @@ public class VehicleController {
 
         System.out.println("Got " + results.size() + " results");
 
-        return "Recieved " + requests.size() + " vehicle requests";
+        //return "Recieved " + requests.size() + " vehicle requests";
+        return mapper.writeValueAsString(results);
+
 
 
     }
